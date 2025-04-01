@@ -8,13 +8,19 @@ GH_USER="bernardlawes"
 MAIN_REPO_NAME="Spatial_Password_Manager"
 MAIN_REPO_URL="git@github.com:$GH_USER/$MAIN_REPO_NAME.git"
 
-# Use "private" or "public"
-SUBMODULE_VISIBILITY="private"
-
-# Submodule repo names (one per line)
+# Submodule names (for iteration)
 SUBMODULE_NAMES=(
   "csharp_login"
   "csharp_pgp_encryption"
+  "public_utils"
+)
+
+# Per-submodule visibility
+declare -A SUBMODULE_VISIBILITY
+SUBMODULE_VISIBILITY=(
+  [csharp_login]="private"
+  [csharp_pgp_encryption]="private"
+  [public_utils]="public"
 )
 
 # === CHECK GH LOGIN ===
@@ -26,13 +32,14 @@ fi
 # === CREATE SUBMODULE REPOS IF THEY DON'T EXIST ===
 for name in "${SUBMODULE_NAMES[@]}"; do
   SUBMODULE_URL="git@github.com:$GH_USER/$name.git"
+  visibility="${SUBMODULE_VISIBILITY[$name]}"
 
-  echo "🔧 Checking submodule repo: $name"
+  echo "🔧 Checking submodule repo: $name ($visibility)"
   if gh repo view "$GH_USER/$name" &>/dev/null; then
     echo "✅ Repo $name already exists, skipping creation."
   else
-    echo "🚀 Creating $SUBMODULE_VISIBILITY repo: $name"
-    gh repo create "$name" --${SUBMODULE_VISIBILITY} --confirm
+    echo "🚀 Creating $visibility repo: $name"
+    gh repo create "$name" --${visibility} --confirm
   fi
 
   if [ ! -d "$name" ]; then
@@ -145,17 +152,5 @@ git commit -m "Add submodules and .gitignore" || echo "📝 Nothing to commit"
 git branch -M main
 git push -u origin main
 
-# === FINAL CLEANUP OF TOP-LEVEL SUBMODULE FOLDERS ===
-echo "🧹 Cleaning up top-level submodule folders..."
-cd ..
 
-for name in "${SUBMODULE_NAMES[@]}"; do
-  if [ -d "$name" ]; then
-    echo "🗑️ Removing top-level folder: $name"
-    rm -rf "$name"
-  else
-    echo "✅ Folder $name already removed"
-  fi
-done
-
-echo "🎉 All done! Top Level Folders Removed. Main project and submodules are cleanly set up inside $MAIN_REPO_NAME/"
+echo "🎉 All done! Top Level Folders Preserved.  Main project and submodules are cleanly set up inside $MAIN_REPO_NAME/"

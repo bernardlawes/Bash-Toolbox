@@ -150,4 +150,4 @@ for name in "${!SUBMODULES[@]}"; do
   fi
 done
 
-echo "🎉 All done! Main project and submodules are cleanly set up inside $MAIN_REPO_NAME/"
+echo "🎉 All done! Top Level Folders Removed. Main project and submodules are cleanly set up inside $MAIN_REPO_NAME/"

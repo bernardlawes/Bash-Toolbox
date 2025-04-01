@@ -76,4 +76,4 @@ git commit -m "Add submodules: ${!SUBMODULES[@]}" || echo "📝 Nothing to commi
 git branch -M main
 git push -u origin main
 
-echo "✅ All done!"
+echo "✅ All done!  Top Level Folders Perserved. Main project and submodules are cleanly set up inside $MAIN_REPO_NAME/"
