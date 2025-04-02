@@ -8,6 +8,7 @@ declare -a REPO_NAMES=(
   "$MAIN_REPO_NAME"
   "csharp_login"
   "csharp_pgp_encryption"
+  "public_utils"
 )
 
 echo "🔥 Starting full cleanup..."

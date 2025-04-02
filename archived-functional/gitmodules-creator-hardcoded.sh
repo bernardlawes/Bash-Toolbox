@@ -32,15 +32,47 @@ for name in "${!SUBMODULES[@]}"; do
     mkdir "$name"
     cd "$name"
     git init
+
+    # Create README
     echo "# $name module" > README.md
-    git add README.md
-    git commit -m "Initial commit"
+
+    # Create .gitignore inside the submodule
+    cat <<EOF > .gitignore
+# OS junk
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-*
+*.code-workspace
+
+# Logs and backups
+*.log
+*.bak
+*.tmp
+*.swp
+*.cache
+
+# Node / Composer leftovers
+node_modules/
+vendor/
+
+# Environment files
+.env
+.env.*
+EOF
+
+    git add .
+    git commit -m "Initial commit with .gitignore"
     git branch -M main
     git remote add origin "${SUBMODULES[$name]}"
     git push -u origin main
     cd ..
   else
-    echo ⚠️ Directory $name already exists. Skipping init."
+    echo "⚠️ Directory $name already exists. Skipping init."
   fi
 done
 
@@ -60,6 +92,35 @@ if [ ! -d ".git" ]; then
   git remote add origin "$MAIN_REPO_URL"
 fi
 
+# Create .gitignore inside main project
+cat <<EOF > .gitignore
+# OS junk
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-*
+*.code-workspace
+
+# Logs and backups
+*.log
+*.bak
+*.tmp
+*.swp
+*.cache
+
+# Node / Composer leftovers
+node_modules/
+vendor/
+
+# Environment files
+.env
+.env.*
+EOF
+
 # === ADD SUBMODULES ===
 for name in "${!SUBMODULES[@]}"; do
   if [ ! -d "$name" ]; then
@@ -71,9 +132,22 @@ for name in "${!SUBMODULES[@]}"; do
 done
 
 # === COMMIT AND PUSH ===
-git add .gitmodules "${!SUBMODULES[@]}" || true
-git commit -m "Add submodules: ${!SUBMODULES[@]}" || echo "📝 Nothing to commit"
+git add .gitmodules .gitignore "${!SUBMODULES[@]}" || true
+git commit -m "Add submodules and .gitignore" || echo "📝 Nothing to commit"
 git branch -M main
 git push -u origin main
 
-echo "✅ All done!"
+# === FINAL CLEANUP OF TOP-LEVEL SUBMODULE FOLDERS ===
+echo "🧹 Cleaning up top-level submodule folders..."
+cd ..
+
+for name in "${!SUBMODULES[@]}"; do
+  if [ -d "$name" ]; then
+    echo "🗑️ Removing top-level folder: $name"
+    rm -rf "$name"
+  else
+    echo "✅ Folder $name already removed"
+  fi
+done
+
+echo "🎉 All done! Top Level Folders Removed. Main project and submodules are cleanly set up inside $MAIN_REPO_NAME/"

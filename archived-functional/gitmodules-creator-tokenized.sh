@@ -6,15 +6,26 @@ set -o pipefail
 # === CONFIG ===
 GH_USER="bernardlawes"
 MAIN_REPO_NAME="Spatial_Password_Manager"
-MAIN_REPO_URL="git@github.com:$GH_USER/$MAIN_REPO_NAME.git"
+#MAIN_REPO_URL="git@github.com:$GH_USER/$MAIN_REPO_NAME.git"
+#Problem with above is script is trying to push to GitHub using SSH 
+#Doesn’t have an SSH key set up, or
+#Has one, but GitHub doesn’t know about it.
 
-# Use "private" or "public"
-SUBMODULE_VISIBILITY="private"
+MAIN_REPO_URL="https://github.com/$GH_USER/$MAIN_REPO_NAME.git"
 
-# Submodule repo names (one per line)
+# Submodule names (for iteration)
 SUBMODULE_NAMES=(
   "csharp_login"
   "csharp_pgp_encryption"
+  "public_utils"
+)
+
+# Per-submodule visibility
+declare -A SUBMODULE_VISIBILITY
+SUBMODULE_VISIBILITY=(
+  [csharp_login]="private"
+  [csharp_pgp_encryption]="private"
+  [public_utils]="public"
 )
 
 # === CHECK GH LOGIN ===
@@ -25,14 +36,15 @@ fi
 
 # === CREATE SUBMODULE REPOS IF THEY DON'T EXIST ===
 for name in "${SUBMODULE_NAMES[@]}"; do
-  SUBMODULE_URL="git@github.com:$GH_USER/$name.git"
+  SUBMODULE_URL="https://github.com/$GH_USER/$name.git"
+  visibility="${SUBMODULE_VISIBILITY[$name]}"
 
-  echo "🔧 Checking submodule repo: $name"
+  echo "🔧 Checking submodule repo: $name ($visibility)"
   if gh repo view "$GH_USER/$name" &>/dev/null; then
     echo "✅ Repo $name already exists, skipping creation."
   else
-    echo "🚀 Creating $SUBMODULE_VISIBILITY repo: $name"
-    gh repo create "$name" --${SUBMODULE_VISIBILITY} --confirm
+    echo "🚀 Creating $visibility repo: $name"
+    gh repo create "$name" --${visibility} --confirm
   fi
 
   if [ ! -d "$name" ]; then
@@ -130,7 +142,7 @@ EOF
 
 # === ADD SUBMODULES ===
 for name in "${SUBMODULE_NAMES[@]}"; do
-  SUBMODULE_URL="git@github.com:$GH_USER/$name.git"
+  SUBMODULE_URL="https://github.com/$GH_USER/$name.git"
   if [ ! -d "$name" ]; then
     echo "🔗 Adding submodule: $name"
     git submodule add "$SUBMODULE_URL" "$name"
@@ -158,4 +170,4 @@ for name in "${SUBMODULE_NAMES[@]}"; do
   fi
 done
 
-echo "🎉 All done! Main project and submodules are cleanly set up inside $MAIN_REPO_NAME/"
+echo "🎉 All done! Top Level Folders Removed. Main project and submodules are cleanly set up inside $MAIN_REPO_NAME/"

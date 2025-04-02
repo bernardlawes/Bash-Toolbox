@@ -1,35 +1,55 @@
 #!/bin/bash
 
-set -e  # Exit on error
+set -e
 set -o pipefail
 
-# === CONFIG ===
-GH_USER="bernardlawes"
-MAIN_REPO_NAME="Spatial_Password_Manager"
-MAIN_REPO_URL="https://github.com/$GH_USER/$MAIN_REPO_NAME.git"
+CONFIG_FILE="./gitmodules-config.json"
 
-# List submodules just once
-SUBMODULE_NAMES=(
-  "csharp_login"
-  "csharp_pgp_encryption"
-)
+# === REQUIRE jq ===
+if ! command -v jq &>/dev/null; then
+  echo "❌ 'jq' is required but not installed. Install it via: sudo apt install jq (Linux) or brew install jq (Mac)"
+  exit 1
+fi
+
+clean_name() {
+  echo "$1" | tr -d '\r\n'
+}
+
+# === PARSE CONFIG ===
+GH_USER=$(jq -r '.gh_user' "$CONFIG_FILE")
+MAIN_REPO_NAME=$(jq -r '.main_repo_name' "$CONFIG_FILE")
+MAIN_REPO_URL="git@github.com:$GH_USER/$MAIN_REPO_NAME.git"
+
+# Parse submodule names into array
+readarray -t SUBMODULE_NAMES < <(jq -r '.submodules[].name' "$CONFIG_FILE")
+
+# Build associative array for submodule visibility
+declare -A SUBMODULE_VISIBILITY
+for row in $(jq -c '.submodules[]' "$CONFIG_FILE"); do
+  name=$(echo "$row" | jq -r '.name')
+  name=$(clean_name "$name")  # <-- sanitize the name
+  visibility=$(echo "$row" | jq -r '.visibility')
+  SUBMODULE_VISIBILITY["$name"]="$visibility"
+done
 
 # === CHECK GH LOGIN ===
 if ! gh auth status &>/dev/null; then
-  echo "❌ You must be logged into GitHub CLI (gh). Run: gh auth login"
+  echo "❌ You must be logged into GitHub CLI (gh). Run: gh auth login --git-protocol ssh"
   exit 1
 fi
 
 # === CREATE SUBMODULE REPOS IF THEY DON'T EXIST ===
-for name in "${SUBMODULE_NAMES[@]}"; do
-  SUBMODULE_URL="https://github.com/$GH_USER/$name.git"
+for module in $(jq -c '.submodules[]' "$CONFIG_FILE"); do
+  name=$(echo "$module" | jq -r '.name')
+  name=$(clean_name "$name")  # <-- sanitize the name
+  visibility=$(echo "$module" | jq -r '.visibility')
 
-  echo "🔧 Checking submodule repo: $name"
+  echo "🔧 Checking submodule repo: $name ($visibility)"
   if gh repo view "$GH_USER/$name" &>/dev/null; then
     echo "✅ Repo $name already exists, skipping creation."
   else
-    echo "🚀 Creating repo: $name"
-    gh repo create "$name" --public --confirm
+    echo "🚀 Creating $visibility repo: $name"
+    gh repo create "$name" --"$visibility" --confirm
   fi
 
   if [ ! -d "$name" ]; then
@@ -40,7 +60,7 @@ for name in "${SUBMODULE_NAMES[@]}"; do
     # Create README
     echo "# $name module" > README.md
 
-    # Create .gitignore inside the submodule
+    # .gitignore
     cat <<EOF > .gitignore
 # OS junk
 .DS_Store
@@ -72,13 +92,14 @@ EOF
     git add .
     git commit -m "Initial commit with .gitignore"
     git branch -M main
-    git remote add origin "$SUBMODULE_URL"
+    git remote add origin "https://github.com/$GH_USER/$name.git"
     git push -u origin main
     cd ..
   else
     echo "⚠️ Directory $name already exists. Skipping init."
   fi
 done
+
 
 # === CREATE MAIN PROJECT ===
 echo "📁 Checking main project: $MAIN_REPO_NAME"
@@ -96,7 +117,7 @@ if [ ! -d ".git" ]; then
   git remote add origin "$MAIN_REPO_URL"
 fi
 
-# Create .gitignore inside main project
+# .gitignore for main project
 cat <<EOF > .gitignore
 # OS junk
 .DS_Store
@@ -127,9 +148,13 @@ EOF
 
 # === ADD SUBMODULES ===
 for name in "${SUBMODULE_NAMES[@]}"; do
+
+  name=$(clean_name "$name")  # <-- sanitize the name
   SUBMODULE_URL="https://github.com/$GH_USER/$name.git"
   if [ ! -d "$name" ]; then
     echo "🔗 Adding submodule: $name"
+    echo "🔗 Adding submodule: name=$name"
+    echo "🔗 Submodule URL: $SUBMODULE_URL"
     git submodule add "$SUBMODULE_URL" "$name"
   else
     echo "⚠️ Submodule $name already exists as folder. Skipping add."
@@ -147,12 +172,14 @@ echo "🧹 Cleaning up top-level submodule folders..."
 cd ..
 
 for name in "${SUBMODULE_NAMES[@]}"; do
+
+  name=$(clean_name "$name")  # <-- sanitize the name
   if [ -d "$name" ]; then
     echo "🗑️ Removing top-level folder: $name"
     rm -rf "$name"
   else
-    echo "✅ Folder $name already removed"
+    echo "✅ Folder $name already removed -"
   fi
 done
 
-echo "🎉 All done! Main project and submodules are cleanly set up inside $MAIN_REPO_NAME/"
+echo "🎉 All done! Top Level Folders Removed. Main project and submodules are cleanly set up inside $MAIN_REPO_NAME/"

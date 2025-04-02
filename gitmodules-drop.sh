@@ -1,16 +1,23 @@
 #!/bin/bash
 
 # === CONFIG ===
-GH_USER="bernardlawes"
-MAIN_REPO_NAME="Spatial_Password_Manager"
+REPO_CONFIG_FILE="gitmodules-config.json"
 
-declare -a REPO_NAMES=(
-  "$MAIN_REPO_NAME"
-  "csharp_login"
-  "csharp_pgp_encryption"
-)
+# === PARSE JSON ===
+GH_USER=$(jq -r '.gh_user' "$REPO_CONFIG_FILE")
+MAIN_REPO_NAME=$(jq -r '.main_repo_name' "$REPO_CONFIG_FILE")
 
-echo "🔥 Starting full cleanup..."
+# Use a loop-friendly JSON-safe method to get repo names
+REPO_NAMES=()
+REPO_NAMES+=("$MAIN_REPO_NAME")
+
+while IFS= read -r name; do
+  name_cleaned=$(echo "$name" | tr -d '\r' | xargs)
+  REPO_NAMES+=("$name_cleaned")
+done < <(jq -r '.submodules[].name' "$REPO_CONFIG_FILE")
+
+echo "🔥 Starting full cleanup for GitHub user: $GH_USER"
+echo "📄 Using config file: $REPO_CONFIG_FILE"
 
 # === DELETE GITHUB REPOS ===
 for repo in "${REPO_NAMES[@]}"; do
