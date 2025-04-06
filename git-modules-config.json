@@ -1,0 +1,31 @@
+{
+  "gh_user": "bernardlawes",
+  "main_repo_name": "Moji-Lens-Japanese",
+  "main_archetype": "winforms",
+  "submodules": [
+    {
+      "name": "csharp-dictionary-japanese",
+      "visibility": "public",
+      "archetype": "console",
+      "create_sln": true
+    },
+    {
+      "name": "csharp-track-clipboard",
+      "visibility": "public",
+      "archetype": "classlib",
+      "create_sln": true
+    },
+    {
+      "name": "csharp-track-mouse",
+      "visibility": "public",
+      "archetype": "classlib",
+      "create_sln": true
+    },
+    {
+      "name": "csharp-ui-architect",
+      "visibility": "private",
+      "archetype": "console",
+      "create_sln": true
+    }
+  ]
+}
