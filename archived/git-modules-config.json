@@ -10,45 +10,45 @@
       "create_sln": true
     },
     {
-      "name": "csharp-journal",
+      "name": "csharp-track-clipboard",
+      "visibility": "public",
+      "archetype": "hybrid",
+      "create_sln": true
+    },
+    {
+      "name": "csharp-track-mouse",
       "visibility": "public",
       "archetype": "console",
       "create_sln": true
     },
     {
-      "name": "csharp-peripherals",
-      "visibility": "public",
-      "archetype": "hybrid",
-      "create_sln": true
-    },
-    {
-      "name": "csharp-metrics",
-      "visibility": "public",
-      "archetype": "hybrid",
-      "create_sln": true
-    },
-    {
-      "name": "csharp-mnemonics",
-      "visibility": "public",
-      "archetype": "hybrid",
-      "create_sln": true
-    },
-    {
-      "name": "csharp-graphemes",
-      "visibility": "public",
-      "archetype": "hybrid",
-      "create_sln": true
-    },
-    {
-      "name": "csharp-networking",
+      "name": "csharp-Data-Journal",
       "visibility": "public",
       "archetype": "console",
       "create_sln": true
     },
     {
-      "name": "csharp-uistudio",
+      "name": "csharp-data-scoring",
+      "visibility": "private",
+      "archetype": "console",
+      "create_sln": true
+    },
+    {
+      "name": "csharp-study-cards",
       "visibility": "private",
       "archetype": "hybrid",
+      "create_sln": true
+    },
+    {
+      "name": "csharp-study-reader",
+      "visibility": "private",
+      "archetype": "winforms",
+      "create_sln": true
+    },
+    {
+      "name": "csharp-UI-Studio",
+      "visibility": "private",
+      "archetype": "console",
       "create_sln": true
     }
   ]

@@ -3,10 +3,72 @@
 set -e
 set -o pipefail
 
-write_gitignore() {
-  local target_dir="$1"
+CONFIG_FILE="./git-modules-config.json"
 
-  cat <<EOF > "$target_dir/.gitignore"
+# === REQUIRE jq ===
+if ! command -v jq &>/dev/null; then
+  echo "❌ 'jq' is required but not installed. Install it via: sudo apt install jq (Linux) or brew install jq (Mac)"
+  exit 1
+fi
+
+clean_name() {
+  echo "$1" | tr -d '\r\n'
+}
+
+# So why am I choosing to clone the repos here even though later I am adding them again after creating the main repo?
+# Because I want to ensure that the submodules are initialized and updated before I add them to the main repo.
+# This way, I can be sure that the submodules are in a clean state and ready to be added to the main repo.
+# This is especially important if the submodules have any dependencies or require any setup before they can be used.
+# need to treat submodules as standalone projects before adding them.
+
+# === PARSE CONFIG ===
+GH_USER=$(jq -r '.gh_user' "$CONFIG_FILE")
+MAIN_REPO_NAME=$(jq -r '.main_repo_name' "$CONFIG_FILE")
+MAIN_REPO_URL="git@github.com:$GH_USER/$MAIN_REPO_NAME.git"
+
+# Parse submodule names into array
+readarray -t SUBMODULE_NAMES < <(jq -r '.submodules[].name' "$CONFIG_FILE")
+
+# Build associative array for submodule visibility
+declare -A SUBMODULE_VISIBILITY
+for module in $(jq -c '.submodules[]' "$CONFIG_FILE"); do
+  name=$(echo "$module" | jq -r '.name')
+  name=$(clean_name "$name")
+  visibility=$(echo "$module" | jq -r '.visibility')
+  REPO_URL="https://github.com/$GH_USER/$name.git"
+
+  echo "🔧 Checking submodule repo: $name ($visibility)"
+  if gh repo view "$GH_USER/$name" &>/dev/null; then
+    echo "✅ Repo $name already exists, skipping creation."
+  else
+    echo "🚀 Creating $visibility repo: $name"
+    gh repo create "$name" --"$visibility" --confirm
+
+    sleep 2  # Allow time for GitHub to register the new repo
+  fi
+
+  if [ ! -d "$name" ]; then
+    echo "📁 Attempting to clone $name"
+    git clone "$REPO_URL" "$name" || {
+      echo "❌ Clone failed — initializing manually"
+      mkdir "$name"
+      cd "$name"
+      git init
+      git remote add origin "$REPO_URL"
+      git pull origin master --rebase || echo "ℹ️ Nothing to rebase or pull"
+      cd ..
+    }
+  fi
+
+  cd "$name"
+
+  if [ ! -f "README.md" ]; then
+    echo "# $name module" > README.md
+  fi
+
+  if [ ! -f ".gitignore" ]; then
+    # .gitignore
+    cat <<EOF > .gitignore
 #############
 # OS Junk
 #############
@@ -133,69 +195,6 @@ project.fragment.lock.json
 *.sdf
 *.class
 EOF
-}
-
-
-CONFIG_FILE="./git-modules-config.json"
-
-# === REQUIRE jq ===
-if ! command -v jq &>/dev/null; then
-  echo "❌ 'jq' is required but not installed. Install it via: sudo apt install jq (Linux) or brew install jq (Mac)"
-  exit 1
-fi
-
-clean_name() {
-  echo "$1" | tr -d '\r\n'
-}
-
-# === PARSE CONFIG ===
-GH_USER=$(jq -r '.gh_user' "$CONFIG_FILE")
-MAIN_REPO_NAME=$(jq -r '.main_repo_name' "$CONFIG_FILE")
-MAIN_REPO_URL="git@github.com:$GH_USER/$MAIN_REPO_NAME.git"
-
-# Parse submodule names into array
-readarray -t SUBMODULE_NAMES < <(jq -r '.submodules[].name' "$CONFIG_FILE")
-
-# Build associative array for submodule visibility
-declare -A SUBMODULE_VISIBILITY
-for module in $(jq -c '.submodules[]' "$CONFIG_FILE"); do
-  name=$(echo "$module" | jq -r '.name')
-  name=$(clean_name "$name")
-  visibility=$(echo "$module" | jq -r '.visibility')
-  REPO_URL="https://github.com/$GH_USER/$name.git"
-
-  echo "🔧 Checking submodule repo: $name ($visibility)"
-  if gh repo view "$GH_USER/$name" &>/dev/null; then
-    echo "✅ Repo $name already exists, skipping creation."
-  else
-    echo "🚀 Creating $visibility repo: $name"
-    gh repo create "$name" --"$visibility" --confirm
-
-    sleep 2  # Allow time for GitHub to register the new repo
-  fi
-
-  if [ ! -d "$name" ]; then
-    echo "📁 Attempting to clone $name"
-    git clone "$REPO_URL" "$name" || {
-      echo "❌ Clone failed — initializing manually"
-      mkdir "$name"
-      cd "$name"
-      git init
-      git remote add origin "$REPO_URL"
-      git pull origin master --rebase || echo "ℹ️ Nothing to rebase or pull"
-      cd ..
-    }
-  fi
-
-  cd "$name"
-
-  if [ ! -f "README.md" ]; then
-    echo "# $name module" > README.md
-  fi
-
-  if [ ! -f ".gitignore" ]; then
-    # .gitignore
-    write_gitignore "$PWD"
   fi
 
   git add .
@@ -238,7 +237,133 @@ fi
 
 
 # .gitignore for main project
-write_gitignore "$PWD"
+cat <<EOF > .gitignore
+#############
+# OS Junk
+#############
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+Desktop.ini
+
+#############
+# IDEs & Editors
+#############
+**/.vscode/
+**/.idea/
+**/.vs/                    # Visual Studio settings folder
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.code-workspace
+*.sublime-*
+
+#############
+# Build output
+#############
+**/bin/
+**/obj/
+**/[Bb]uild/
+**/[Ll]og/
+*.log
+**/.vs/
+*.user
+*.suo
+*.tmp
+*.cache
+*.dll   # <--- optionally ignore all DLLs unless you specifically want one
+# !path/to/your/output/MyLibrary.dll #If you want to track one specific DLL, you can override it like this:
+
+#############
+# Packaging
+#############
+*.nupkg
+*.snupkg
+*.nuspec
+*.vsix
+*.zip
+*.tar.gz
+
+#############
+# Installer logs
+#############
+*.msi
+*.exe
+
+#############
+# Debugging & crash dumps
+#############
+*.pdb
+*.mdb
+*.opendb
+*.dmp
+
+#############
+# Test Results
+#############
+**/TestResults/
+*.trx
+*.coverage
+*.coveragexml
+*.testsettings
+*.vsmdi
+*.appxrecipe
+
+#############
+# Temporary files
+#############
+*.tmp
+*.temp
+*.bak
+*.swp
+*.cache
+
+#############
+# Visual Studio profiler
+#############
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+#############
+# Resharper & Extensions
+#############
+**/_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+*.ncrunch*
+*.dotCover
+
+#############
+# Rider
+#############
+**/.idea/
+*.sln.iml
+
+#############
+# NuGet
+#############
+*.nupkg
+.nuget/
+**/packages/
+project.lock.json
+project.fragment.lock.json
+
+#############
+# Others
+#############
+**/node_modules/
+**/vendor/
+.env
+.env.*
+*.db
+*.sqlite
+*.sdf
+*.class
+EOF
 
 # === ADD SUBMODULES ===
 for name in "${SUBMODULE_NAMES[@]}"; do

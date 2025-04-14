@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # === CONFIG ===
-REPO_CONFIG_FILE="gitmodules-config.json"
+REPO_CONFIG_FILE="git-modules-config.json"
 
 # === PARSE JSON ===
 GH_USER=$(jq -r '.gh_user' "$REPO_CONFIG_FILE")
