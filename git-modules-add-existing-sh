@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+JSON_FILE="git-modules-add-existing.json"
+
+# --- Check prerequisites ---
+if ! command -v jq &> /dev/null; then
+    echo "❌ jq is not installed. Install it to proceed."
+    exit 1
+fi
+
+if [ ! -f "$JSON_FILE" ]; then
+    echo "❌ JSON file '$JSON_FILE' not found."
+    exit 1
+fi
+
+# --- Parse JSON ---
+gh_user=$(jq -r '.gh_user' "$JSON_FILE" | tr -d '\r')
+main_repo=$(jq -r '.main_repo' "$JSON_FILE" | tr -d '\r')
+repos=$(jq -r '.repos[]' "$JSON_FILE" | tr -d '\r')
+
+# --- Change into master repo directory ---
+cd "$main_repo" || { echo "❌ Cannot enter directory '$main_repo'"; exit 1; }
+
+for repo in $repos; do
+    echo "📦 Adding submodule: $repo"
+    git submodule add "https://github.com/$gh_user/$repo.git" "$repo"
+done
+
+git commit -am "Added existing submodules"
+echo "✅ All submodules added and committed."
