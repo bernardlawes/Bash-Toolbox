@@ -1,0 +1,6 @@
+{
+  "remove": [
+    "csharp-mnemonics",
+    "csharp-networking"
+  ]
+}

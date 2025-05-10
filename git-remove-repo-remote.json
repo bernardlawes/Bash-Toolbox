@@ -1,0 +1,9 @@
+{
+  "owner": "bernardlawes",
+  "confirm": true,
+  "repos": [
+    "csharp-graphemes",
+    "csharp-uistudio",
+    "csharp-metrics"
+  ]
+}
