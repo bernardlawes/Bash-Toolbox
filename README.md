@@ -1,6 +1,8 @@
 # 🌀 Git Bash Automation Toolkit
 
-A suite of Bash scripts to simplify and automate the creation, management, editing, removal, and pushing of multi-project Git repositories with Git submodules — including support for **multi-repo setups** with **submodules**, **custom structures**, and **modular workflows**.
+A JSON driven collection of Bash scripts to simplify and automate the creation, management, editing, removal, and pushing of multi-project Git repositories with Git submodules — including support for **multi-repo setups** with **submodules**, **custom structures**, and **modular workflows**.
+
+In addition to automating the creation of the main Git repository and its associated submodules, this toolkit also supports programmatic population of each submodule with fully structured project content. For example, in C#-based workflows, users can define the project type (e.g., class library, console app, WinForms, etc.) and specify custom directory structures, allowing the toolkit to scaffold complete, ready-to-build projects inside each submodule — all from a single configuration file or scripted workflow.
 
 ## ⚡ Purpose
 
